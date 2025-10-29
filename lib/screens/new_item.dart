@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:grocerystore/data/categories.dart';
+import 'package:grocerystore/models/category.dart';
+import 'package:grocerystore/models/grocery_item.dart';
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -11,8 +13,21 @@ class NewItem extends StatefulWidget {
 class _NewItemState extends State<NewItem> {
   final _formKey = GlobalKey<FormState>();
 
+  String _enteredName = "";
+  int _enteredQuantity = 1;
+  Category _selectedCategory = categories.values.first;
+
   void _saveForm() {
-    _formKey.currentState!.validate();
+    if (_formKey.currentState!.validate()) {
+      Navigator.of(context).pop(
+        GroceryItem(
+          id: DateTime.now().toString(),
+          name: _enteredName,
+          quantity: _enteredQuantity,
+          category: _selectedCategory,
+        ),
+      );
+    }
   }
 
   @override
@@ -34,7 +49,7 @@ class _NewItemState extends State<NewItem> {
                       value.trim().length <= 1) {
                     return "Must be at least 2 characters long.";
                   }
-
+                  _enteredName = value;
                   return null;
                 },
               ),
@@ -43,19 +58,24 @@ class _NewItemState extends State<NewItem> {
                 children: [
                   Expanded(
                     child: TextFormField(
-                      initialValue: "1",
+                      initialValue: _enteredQuantity.toString(),
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(label: Text("Quantity")),
+                      validator: (value) {
+                        _enteredQuantity = int.parse(value!);
+
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField(
-                      value: categories.values.first.title,
+                      value: _selectedCategory,
                       items: [
                         for (final category in categories.entries)
                           DropdownMenuItem(
-                            value: category.value.title,
+                            value: category.value,
                             child: Row(
                               children: [
                                 Container(
@@ -69,7 +89,11 @@ class _NewItemState extends State<NewItem> {
                             ),
                           ),
                       ],
-                      onChanged: (value) {},
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedCategory = value!;
+                        });
+                      },
                     ),
                   ),
                 ],
