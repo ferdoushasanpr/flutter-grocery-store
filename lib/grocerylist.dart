@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-import 'package:grocerystore/data/dummy_items.dart';
+import 'package:flutter/material.dart';
+import 'package:grocerystore/data/categories.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:grocerystore/models/grocery_item.dart';
 import 'package:grocerystore/screens/new_item.dart';
 
@@ -12,10 +15,58 @@ class Grocerylist extends StatefulWidget {
 }
 
 class _GrocerylistState extends State<Grocerylist> {
-  final List<GroceryItem> groceryItemsList = [...groceryItems];
+  List<GroceryItem> groceryItemsList = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _loadItems();
+  }
+
+  void _loadItems() async {
+    final uri = Uri.https(
+      "grocery-store-38c6a-default-rtdb.firebaseio.com",
+      "grocerystore.json",
+    );
+
+    final result = await http.get(uri);
+
+    final listData = json.decode(result.body);
+
+    final List<GroceryItem> tempList = [];
+
+    if (listData == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    for (final item in listData.entries) {
+      final category = categories.values.firstWhere((cat) {
+        return cat.title == item.value['category'];
+      });
+
+      tempList.add(
+        GroceryItem(
+          id: item.key,
+          name: item.value['name'],
+          quantity: item.value['quantity'],
+          category: category,
+        ),
+      );
+    }
+
+    setState(() {
+      groceryItemsList = tempList;
+      isLoading = false;
+    });
+  }
 
   void _addNewItemScreen(BuildContext context) async {
-    var result = await Navigator.of(context).push(
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) {
           return NewItem();
@@ -35,6 +86,10 @@ class _GrocerylistState extends State<Grocerylist> {
   @override
   Widget build(BuildContext context) {
     Widget content = Center(child: Text("Oh no, No Items to Show..."));
+
+    if (isLoading) {
+      content = Center(child: CircularProgressIndicator());
+    }
 
     if (groceryItemsList.isNotEmpty) {
       content = ListView.builder(
@@ -56,6 +111,7 @@ class _GrocerylistState extends State<Grocerylist> {
                   color: groceryItemsList[index].category.color,
                 ),
               ),
+              trailing: Text(groceryItemsList[index].quantity.toString()),
             ),
           );
         },

@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:grocerystore/data/categories.dart';
 import 'package:grocerystore/models/category.dart';
 import 'package:grocerystore/models/grocery_item.dart';
@@ -17,11 +21,29 @@ class _NewItemState extends State<NewItem> {
   int _enteredQuantity = 1;
   Category _selectedCategory = categories.values.first;
 
-  void _saveForm() {
+  void _saveForm() async {
     if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      final uri = Uri.https(
+        "grocery-store-38c6a-default-rtdb.firebaseio.com",
+        "grocerystore.json",
+      );
+      final result = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "name": _enteredName,
+          "quantity": _enteredQuantity,
+          "category": _selectedCategory.title,
+        }),
+      );
+
+      final responseData = json.decode(result.body);
+
       Navigator.of(context).pop(
         GroceryItem(
-          id: DateTime.now().toString(),
+          id: responseData["name"],
           name: _enteredName,
           quantity: _enteredQuantity,
           category: _selectedCategory,
